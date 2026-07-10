@@ -11,4 +11,15 @@ app.get("/",(req,res) => {
     res.send("Merhaba")
 })
 
+//! GLOBAL HATA YAKALAYICI
+app.use((err,req,res,next) => {
+    console.error("Sunucuda bir hata oluştu", err.stack)
+
+    res.status(500).json({
+        hata : "Sunucu Hatası!!!",
+        mesaj : "Beklenmeyen Bir Sorun Oluştu"
+    })
+})
+
+
 app.listen(3000)

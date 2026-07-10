@@ -21,6 +21,12 @@ router.get("/", (req, res) => {
 
 router.post("/",(req,res) => {
     const newTask = req.body
+    if(!newTask.clientName || newTask.description){
+        return res.status(400).json({
+            hata : "Eksik Veri!!!",
+            mesaj : "Lütfen 'clientName' veya 'description' alanlarını doldurunuz"
+        })
+    }
     newTask.id = tasks.length + 1
     tasks.push(newTask)
     res.status(201).json(newTask)
