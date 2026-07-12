@@ -21,7 +21,7 @@ router.get("/", (req, res) => {
 
 router.post("/",(req,res) => {
     const newTask = req.body
-    if(!newTask.clientName || newTask.description){
+    if(!newTask.clientName || !newTask.description){
         return res.status(400).json({
             hata : "Eksik Veri!!!",
             mesaj : "Lütfen 'clientName' veya 'description' alanlarını doldurunuz"

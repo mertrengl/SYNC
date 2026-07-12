@@ -1,7 +1,9 @@
 const express = require("express")
 const app = express()
 const tasksRoutes = require("./routes/tasks.js")
+const cors = require("cors")
 
+app.use(cors())
 app.use(express.json())
 
 app.use("/tasks",tasksRoutes)
@@ -22,4 +24,4 @@ app.use((err,req,res,next) => {
 })
 
 
-app.listen(3000)
+app.listen(5000)
