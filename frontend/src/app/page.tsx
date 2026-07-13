@@ -14,12 +14,7 @@ export default function Home() {
   const [client, setClient] = useState('');
   const [desc, setDesc] = useState('');
 
-  // 1. Sayfa yüklendiğinde verileri backend'den çek
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
+  async function fetchTasks() {
     try {
       const res = await fetch('http://localhost:5000/tasks');
       const data = await res.json();
@@ -27,51 +22,57 @@ export default function Home() {
     } catch (err) {
       console.error("Veri çekme hatası:", err);
     }
-  };
+  }
+
+  // 1. Sayfa yüklendiğinde verileri backend'den çek
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchTasks();
+  }, []);
 
   // 2. Yeni görev ekle
   const addTask = async () => {
-  console.log("Butona basıldı! Veriler:", client, desc); // <-- Bunu ekle
-  if (!client || !desc) {
-    console.warn("Müşteri veya açıklama boş!");
-    return;
-  }
+    console.log("Butona basıldı! Veriler:", client, desc);
 
-  try {
-    const response = await fetch('http://localhost:5000/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientName: client, description: desc, status: 'Todo' }),
-    });
+    if (!client || !desc) {
+      console.warn("Müşteri veya açıklama boş!");
+      return;
+    }
 
-    const result = await response.json();
-    console.log("Backend'den gelen cevap:", result); // <-- Bunu ekle
-    
-    setClient('');
-    setDesc('');
-    fetchTasks();
-  } catch (error) {
-    console.error("İstek atılırken hata oluştu:", error); // <-- Hata buraya düşebilir
-  }
-};
-// 3. Görevlerin Durumu Güncelleme (Opsiyonel)
-const updateStatus = async (task: Task) => {
-    // Durum döngüsü mantığı
-    let nextStatus = 'Todo';
-    if (task.status === 'Todo') nextStatus = 'In Progress';
-    else if (task.status === 'In Progress') nextStatus = 'Done';
-    else nextStatus = 'Todo';
+    try {
+      const response = await fetch('http://localhost:5000/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientName: client, description: desc, status: 'Todo' }),
+      });
 
-    // Backend'e PUT isteği atıyoruz
+      const result = await response.json();
+      console.log("Backend'den gelen cevap:", result);
+
+      setClient('');
+      setDesc('');
+      fetchTasks();
+    } catch (error) {
+      console.error("İstek atılırken hata oluştu:", error);
+    }
+  };
+
+  // 3. Görevlerin Durumu Güncelleme (Opsiyonel)
+  const updateStatus = async (task: Task) => {
+    if (task.status === 'Done') return;
+
+    const nextStatus = task.status === 'To Do' ? 'In Progress' : 'Done';
+    alert(task.status)
+
     await fetch(`http://localhost:5000/tasks/${task.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: nextStatus }),
     });
 
-    // Listeyi yenile ki değişiklik ekranda görünsün
     fetchTasks();
   };
+
   return (
     <main className="max-w-3xl mx-auto p-8">
       <header className="mb-8 border-b border-zinc-800 pb-4">
@@ -80,14 +81,14 @@ const updateStatus = async (task: Task) => {
 
       {/* Form Alanı */}
       <div className="flex gap-2 mb-8">
-        <input 
-          placeholder="Müşteri" 
+        <input
+          placeholder="Müşteri"
           value={client}
           className="border p-2 rounded text-black bg-white"
           onChange={(e) => setClient(e.target.value)}
         />
-        <input 
-          placeholder="Açıklama" 
+        <input
+          placeholder="Açıklama"
           value={desc}
           className="border p-2 rounded text-black bg-white"
           onChange={(e) => setDesc(e.target.value)}
@@ -105,13 +106,18 @@ const updateStatus = async (task: Task) => {
               <h3 className="font-medium">{task.description}</h3>
               <p className="text-sm text-zinc-400">Müşteri: {task.clientName}</p>
             </div>
-            <button 
-  onClick={() => updateStatus(task)} // Tıklayınca fonksiyonu çağır
-  className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-xs font-medium border border-blue-500/20 hover:bg-blue-500/20 cursor-pointer"
->
-  {task.status}
+
+            <button
+              onClick={() => updateStatus(task)}
+              disabled={task.status === 'Done'}
+              className={`px-3 py-1 rounded-full text-xs font-medium border border-blue-500/20 transition-all
+                ${task.status === 'Done'
+                  ? 'bg-green-500/10 text-green-400 cursor-default border-green-500/20'
+                  : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 cursor-pointer'
+                }`}
+            >
+              {task.status}
             </button>
-            
           </div>
         ))}
       </div>
