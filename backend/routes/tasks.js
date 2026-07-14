@@ -1,62 +1,78 @@
 const express = require("express")
-
 const router = express.Router()
-
-let tasks = [{
-    "id" : 1 ,
-    "clientName" : "Tarkan" ,
-    "description" : "Vokal Kaydı Alınıcak",
-    "status" : "In Progress"
-},
-{
-       "id" : 2 ,
-    "clientName" : "Duman" ,
-    "description" : "Bateri Mixi Alınıcak",
-    "status" : "To Do"   
-}]
+const { pool } = require("../config/db.js")
 
 router.get("/", (req, res) => {
-    res.json(tasks)
+    pool.query("SELECT * FROM tasks ORDER BY id ASC", (err, results) => {
+        if (err) {
+            console.error(err)
+            return res.status(500).json({ error: "Veritabanı hatası" })
+        }
+        res.json(results.rows)
+    })
 })
 
-router.post("/",(req,res) => {
-    const newTask = req.body
-    if(!newTask.clientName || !newTask.description){
-        return res.status(400).json({
-            hata : "Eksik Veri!!!",
-            mesaj : "Lütfen 'clientName' veya 'description' alanlarını doldurunuz"
-        })
+router.post("/", async (req, res) => {
+    const { client_name, description } = req.body;
+    try {
+        const result = await pool.query(
+            "INSERT INTO tasks (client_name, description, status) VALUES ($1, $2, 'Todo') RETURNING *",
+            [client_name, description]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Veritabanı hatası" });
     }
-    newTask.id = tasks.length + 1
-    tasks.push(newTask)
-    res.status(201).json(newTask)
 })
 
-router.get("/:id",(req,res) => {
-    const taskID = parseInt(req.params.id)
-    const task = tasks.find(t => t.id === taskID)
-    if (!task) return res.status(404).send("Böyle Bir Task Yok veya Silinmiş!")
-        res.json(task)
-})
-router.put("/:id",(req,res) => {
-    const taskID = parseInt(req.params.id)
-    const task = tasks.find(t => t.id === taskID)
-    if(!task){ return res.status(404).send("Bu ID ile güncellenebilir bir task bulamadık")}
-    task.clientName = req.body.clientName || task.clientName
-    task.description = req.body.description || task.description
-    task.status = req.body.status || task.status
-    res.json(task)
-})
-router.delete("/:id",(req,res) => {
-    const taskID = parseInt(req.params.id)
-    const taskIndex = tasks.findIndex(t => t.id === taskID)
-    if(taskIndex === -1) return res.status(404).send("Bu ID'ye Ait Silinecek Task Bulunumadı")
-        const deletedTask = tasks.splice(taskIndex,1)
-    res.json({ mesaj: "Görev başarıyla silindi", silinen: deletedTask[0] })
-
+router.get("/:id", async (req, res) => {
+    const taskID = parseInt(req.params.id);
+    try {
+        // Postgres placeholder kullanımı: $1
+        const result = await pool.query("SELECT * FROM tasks WHERE id = $1", [taskID]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Görev bulunamadı" });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Veritabanı hatası" });
+    }
 })
 
+router.put("/:id", async (req, res) => {
+    const taskID = parseInt(req.params.id);
+    const { client_name, description, status } = req.body;
+    try {
+        const result = await pool.query(
+            "UPDATE tasks SET client_name = $1, description = $2, status = $3 WHERE id = $4 RETURNING *",
+            [client_name, description, status, taskID]
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: "Görev bulunamadı" });
+        }
+        res.json({ message: "Görev başarıyla güncellendi", updated: result.rows[0] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Veritabanı hatası" });
+    }
+})
 
+
+router.delete("/:id", async (req, res) => {
+    const taskID = parseInt(req.params.id);
+    try {
+        const result = await pool.query("DELETE FROM tasks WHERE id = $1 RETURNING *", [taskID]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: "Görev bulunamadı" });
+        }
+        res.json({ message: "Görev başarıyla silindi", silinen: result.rows[0] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Veritabanı hatası" });
+    }
+})
 
 
 

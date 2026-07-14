@@ -2,9 +2,12 @@ const express = require("express")
 const app = express()
 const tasksRoutes = require("./routes/tasks.js")
 const cors = require("cors")
+const { connectDB } = require("./config/db.js")
+
 
 app.use(cors())
 app.use(express.json())
+connectDB()
 
 app.use("/tasks",tasksRoutes)
 
